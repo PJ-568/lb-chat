@@ -128,6 +128,11 @@ class ChatServer(http.server.BaseHTTPRequestHandler):
                 message = post_data.get('messageInput', [''])[0]
                 lang = post_data.get('lang', [self.get_preferred_language()])[0]
 
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write('success'.encode('utf-8'))
+
                 # 检查非法字符
                 illegal_chars = ['<', '>', '&', '"', "'", "\\"]
                 if any(char in message for char in illegal_chars):
