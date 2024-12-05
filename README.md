@@ -14,8 +14,8 @@
 
 ## 客户端
 
-直接运行：`curl -sS https://gitee.com/PJ-568/lb-chat/raw/main/client/client.sh | bash`
+直接运行：`curl -sS https://gitee.com/PJ-568/lb-chat/raw/main/client/client.bash | bash`
 
-文件：`./client/client.sh`
+文件：`./client/client.bash`
 
-运行：`bash ./client.sh --cli --dialog --zenity --help --version --zh --en`
+运行：`bash ./client.bash --cli --dialog --zenity --help --version --zh --en`
