@@ -136,7 +136,7 @@ class ChatServer(http.server.BaseHTTPRequestHandler):
                 # 检查非法字符
                 illegal_chars = ['<', '>', '&', '"', "'", "\\"]
                 if any(char in message for char in illegal_chars):
-                    self.send_msg_error(400, f"Bad Request: Message contains illegal characters.<br>消息包含非法字符。", f"<a href='./chat?nickname={nickname}&roomid={roomid}'>Back | 返回</a>")
+                    self.send_msg_error(400, 'Bad Request: Message contains illegal characters.<br>消息包含非法字符。', '', False)
                     return
 
                 # 发送频率上限检查
@@ -144,19 +144,19 @@ class ChatServer(http.server.BaseHTTPRequestHandler):
                     if message and len(message) <= self.max_message_length:
                         self.add_message(roomid, nickname, message)
                     else:
-                        self.send_msg_error(413, f"Request Entity Too Large or is Null.<br>消息过长或为空。", f"<a href='./chat?nickname={nickname}&roomid={roomid}&messageInput={message}'>Back | 返回</a>")
+                        self.send_msg_error(413, 'Request Entity Too Large or is Null.<br>消息过长或为空。', '', False)
                         return
                     self.send_response(302)
                     self.send_header('Location', f'/chat?nickname={quote(nickname)}&roomid={quote(roomid)}&lang={quote(lang)}')
                     self.end_headers()
                     self.save_rooms() # 不执行会导致用户无法第一时间读取最新聊天记录
                 else:
-                    self.send_msg_error(429, f"Too Many Requests.<br>请求过于频繁，请稍后重试。", f"<a href='./send_message?nickname={nickname}&roomid={roomid}&messageInput={message}'>Retry | 重试</a><a href='./chat?nickname={nickname}&roomid={roomid}&messageInput={message}'>Back | 返回</a>")
+                    self.send_msg_error(429, f"Too Many Requests.<br>请求过于频繁，请稍后重试。", '', False)
             else:
-                self.send_msg_error(404, "Not Found.<br>未找到该资源。")
+                self.send_msg_error(404, "Not Found.\n未找到该资源。", '', False)
         except Exception as e:
             logging.error(f"Error processing POST request: {e}")
-            self.send_msg_error(500, f"Server got itself in trouble.<br>服务器出错。<br>{e}")
+            self.send_msg_error(500, f"Server got itself in trouble.\n服务器出错。\n{e}", '', False)
     
     def get_preferred_language(self):
         headers = self.headers
@@ -301,17 +301,22 @@ class ChatServer(http.server.BaseHTTPRequestHandler):
         chat_log = '<br>'.join(messages) if messages else f'<p style="color:#ccc">{empty_msg}</p>'
         return f'''<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><title>{title}-{roomid}</title><meta name="viewport"content="width=device-width, initial-scale=1.0"><meta http-equiv="refresh"content="{{self.auto_refresh_interval}}"><script>document.addEventListener('DOMContentLoaded',function(){{window.scrollTo(0,document.documentElement.scrollHeight)}});</script></head><body style="font-family: Arial, sans-serif;"><span>{chat_log}</span></body></html>'''.encode('utf-8')
 
-    def generate_error_html(self, errorCode, errorMsg = '', buttons = "<a href='/'>返回主页 | Back</a>"):
+    def generate_error_html(self, errorCode, errorMsg = '', buttons = ''):
+        if buttons == '':
+            buttons = '<a href='/'>返回主页 | Back</a>'
         if not errorMsg:
             errorMsg = f'错误代码：{errorCode}<br>Error code: {errorCode}'
         return f'''<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><title>错误：{errorCode}</title><link type="text/css" rel="stylesheet" href="/lb-chat.css"><meta name="viewport" content="width=192, initial-scale=1.0"><script src="//lib.baomitu.com/pjax/0.2.8/pjax.min.js" type="text/javascript"></script><script src="/main.js" type="text/javascript"></script></head><body><div class="container"><fieldset><legend>错误：{errorCode}</legend><div class="content">{errorMsg}</div>{buttons}</fieldset></div><div class="loading-bar"><div class="progress"></div></div></body></html>'''.encode('utf-8')
 
-    def send_msg_error(self, errorCode, errorMsg = '', buttons = "<a href='/'>返回主页 | Back</a>"):
+    def send_msg_error(self, errorCode, errorMsg = '', buttons = '', html = True):
         self.send_response(errorCode)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.send_header('Cache-Control', 'public, max-age=15')
-        self.end_headers()
-        self.wfile.write(self.generate_error_html(errorCode, errorMsg, buttons))
+        if html:
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'public, max-age=15')
+            self.end_headers()
+            self.wfile.write(self.generate_error_html(errorCode, errorMsg, buttons))
+        else:
+            self.wfile.write(errorMsg)
 
     # def send_file(self, filename):
     #     try:
